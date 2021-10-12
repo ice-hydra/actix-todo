@@ -1,13 +1,11 @@
 mod config;
+mod db;
+mod handlers;
 mod models;
 
-use actix_web::{web, App, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
 use tokio_postgres::NoTls;
-
-async fn status() -> impl Responder {
-    web::HttpResponse::Ok().json(models::Status { status: "UP" })
-}
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -25,7 +23,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .data(pool.clone())
-            .route("/", web::get().to(status))
+            .route("/", web::get().to(handlers::status))
+            .route("/todos{_:/?}", web::get().to(handlers::get_todos))
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()
