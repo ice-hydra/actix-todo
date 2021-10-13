@@ -5,7 +5,7 @@ use tokio_pg_mapper::FromTokioPostgresRow;
 
 pub async fn get_todos(client: &Client) -> Result<Vec<TodoList>, io::Error> {
     let stmt = client
-        .prepare("SELECT id,title FROM todo_list ORDER BY id DESC")
+        .prepare("SELECT id,title FROM todo_list ORDER BY id DESC LIMIT 100")
         .await
         .unwrap();
     let todos = client
