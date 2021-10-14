@@ -1,12 +1,22 @@
 mod config;
 mod db;
+mod errors;
 mod handlers;
 mod models;
-mod errors;
 
 use actix_web::{web, App, HttpServer};
 use dotenv::dotenv;
+use slog::{info, o, Drain, Logger};
+use slog_async::Async;
+use slog_term::{FullFormat, TermDecorator};
 use tokio_postgres::NoTls;
+
+fn configure_log() -> Logger {
+    let decorator = TermDecorator::new().build();
+    let console_drain = FullFormat::new(decorator).build().fuse();
+    let console_drain = Async::new(console_drain).build().fuse();
+    Logger::root(console_drain, o!("v" => env!("CARGO_PKG_VERSION")))
+}
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -16,14 +26,19 @@ async fn main() -> std::io::Result<()> {
 
     let pool = config.pg.create_pool(NoTls).unwrap();
 
-    println!(
-        "Starting server at http://{}:{}",
-        config.server.host, config.server.port
+    let log = configure_log();
+
+    info!(
+        log,
+        "Starting server at http://{}:{}", config.server.host, config.server.port
     );
 
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
+            .data(models::AppState {
+                pool: pool.clone(),
+                log: log.clone(),
+            })
             .route("/", web::get().to(handlers::status))
             .route("/todos{_:/?}", web::get().to(handlers::get_todos))
             .route(
