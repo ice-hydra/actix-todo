@@ -1,13 +1,21 @@
 use crate::{db, errors::AppError, models};
 use actix_web::{web, HttpResponse, Responder};
 use deadpool_postgres::{Client, Pool};
-use slog::{crit, o, Logger};
+use slog::{crit, error, o, Logger};
 
 async fn get_client(pool: Pool, log: Logger) -> Result<Client, AppError> {
     pool.get().await.map_err(|err| {
         let sublog = log.new(o!("cause" => err.to_string()));
         crit!(sublog, "Error creating client");
         AppError::db_error(err)
+    })
+}
+
+fn log_error(log: Logger) -> Box<dyn Fn(AppError) -> AppError> {
+    Box::new(move |err| {
+        let sublog = log.new(o!("cause" => err.cause.clone()));
+        error!(sublog, "{}", err.message());
+        err
     })
 }
 
@@ -23,6 +31,7 @@ pub async fn get_todos(state: web::Data<models::AppState>) -> Result<impl Respon
     db::get_todos(&client)
         .await
         .map(|todos| HttpResponse::Ok().json(todos))
+        .map_err(log_error(log))
 }
 
 pub async fn get_items(
@@ -36,6 +45,7 @@ pub async fn get_items(
     db::get_items(&client, path.0)
         .await
         .map(|items| HttpResponse::Ok().json(items))
+        .map_err(log_error(log))
 }
 
 pub async fn create_todo(
@@ -49,6 +59,7 @@ pub async fn create_todo(
     db::create_todo(&client, json.title.clone())
         .await
         .map(|todo_list| HttpResponse::Ok().json(todo_list))
+        .map_err(log_error(log))
 }
 
 pub async fn check_item(
@@ -61,4 +72,5 @@ pub async fn check_item(
     db::check_item(&client, path.0, path.1)
         .await
         .map(|updated| HttpResponse::Ok().json(models::ResultResponse { success: updated }))
+        .map_err(log_error(log))
 }
