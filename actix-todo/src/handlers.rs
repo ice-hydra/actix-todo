@@ -38,6 +38,7 @@ pub async fn get_items(
     state: web::Data<models::AppState>,
     path: web::Path<(i32,)>,
 ) -> Result<impl Responder, AppError> {
+    let path = path.into_inner();
     let log = state.log.new(o!("handler" => "get_items"));
 
     let client: Client = get_client(state.pool.clone(), log.clone()).await?;
@@ -66,6 +67,7 @@ pub async fn check_item(
     state: web::Data<models::AppState>,
     path: web::Path<(i32, i32)>,
 ) -> Result<impl Responder, AppError> {
+    let path = path.into_inner();
     let log = state.log.new(o!("handler" => "check_item"));
 
     let client: Client = get_client(state.pool.clone(), log.clone()).await?;

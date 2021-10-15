@@ -18,7 +18,7 @@ fn configure_log() -> Logger {
     Logger::root(console_drain, o!("v" => env!("CARGO_PKG_VERSION")))
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
