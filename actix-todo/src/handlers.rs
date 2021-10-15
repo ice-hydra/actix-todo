@@ -76,3 +76,18 @@ pub async fn check_item(
         .map(|updated| HttpResponse::Ok().json(models::ResultResponse { success: updated }))
         .map_err(log_error(log))
 }
+
+pub async fn get_todo(
+    state: web::Data<models::AppState>,
+    path: web::Path<(i32,)>,
+) -> Result<impl Responder, AppError> {
+    let path = path.into_inner();
+    let log = state
+        .log
+        .new(o!("handler" => "get_todo", "list_id" => path.0));
+    let client: Client = get_client(state.pool.clone(), log.clone()).await?;
+    db::get_todo(&client, path.0)
+        .await
+        .map(|todo| HttpResponse::Ok().json(todo))
+        .map_err(log_error(log))
+}

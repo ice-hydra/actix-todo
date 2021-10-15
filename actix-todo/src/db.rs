@@ -72,3 +72,23 @@ pub async fn check_item(client: &Client, list_id: i32, item_id: i32) -> Result<b
         _ => Ok(false),
     }
 }
+
+pub async fn get_todo(client: &Client, list_id: i32) -> Result<TodoList, AppError> {
+    let stmt = client
+        .prepare("SELECT id, title FROM todo_list WHERE id=$1 LIMIT 1")
+        .await
+        .map_err(AppError::db_error)?;
+    let maybe_todo = client
+        .query_opt(&stmt, &[&list_id])
+        .await
+        .map_err(AppError::db_error)?
+        .map(|row| TodoList::from_row_ref(&row).unwrap());
+    match maybe_todo {
+        Some(todo) => Ok(todo),
+        None => Err(AppError {
+            message: Some(format!("Todo list {} not found", list_id)),
+            cause: None,
+            error_type: AppErrorType::NotFoundError,
+        }),
+    }
+}

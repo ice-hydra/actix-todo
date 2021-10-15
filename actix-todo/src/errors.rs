@@ -3,7 +3,6 @@ use serde::Serialize;
 use std::fmt;
 
 #[derive(Debug)]
-#[allow(unused)]
 pub enum AppErrorType {
     DbError,
     NotFoundError,
